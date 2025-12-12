@@ -95,6 +95,11 @@ function displayAllLicenses(data) {
                       isExpired ? '<span class="badge badge-warning">已过期</span>' :
                       '<span class="badge badge-success">正常</span>';
         
+        // IP 绑定状态
+        const ipStatus = lic.ipBindingEnabled ? 
+            `<span class="badge badge-info">🔒 ${(lic.allowedIPs || []).length} IP</span>` :
+            '<span class="badge badge-secondary">IP未启用</span>';
+        
         const banBtn = lic.isBanned ? 
             `<button class="btn-small btn-success" onclick="unbanLicenseAction('${lic.license}')">解封</button>` :
             `<button class="btn-small btn-danger" onclick="banLicenseAction('${lic.license}')">封禁</button>`;
@@ -108,8 +113,10 @@ function displayAllLicenses(data) {
                 <div class="list-item-info">👤 ${lic.customer}</div>
                 <div class="list-item-info">📅 ${lic.expire}</div>
                 <div class="list-item-info">📱 ${lic.devicesUsed} / ${lic.maxDevices} 台设备</div>
+                <div class="list-item-info">${ipStatus}</div>
                 <div class="list-item-actions">
                     <button class="btn-small" onclick="editLicense('${lic.license}')">编辑</button>
+                    <button class="btn-small" onclick="manageIPBindingFromList('${lic.license}')">🔒IP</button>
                     ${banBtn}
                     <button class="btn-small btn-danger" onclick="deleteLicense('${lic.license}')">删除</button>
                 </div>
@@ -126,7 +133,12 @@ function displayDevices(data, license) {
         return;
     }
 
-    let html = '<div class="section"><h2>设备列表</h2>';
+    let html = '<div class="section">';
+    html += '<div class="section-header">';
+    html += '<h2>设备列表</h2>';
+    html += `<button class="btn-small" onclick="manageIPBinding('${license}')">🔒 IP绑定</button>`;
+    html += '</div>';
+    
     data.devices.forEach(device => {
         const status = device.isBanned ? '<span class="badge badge-danger">已封禁</span>' : '<span class="badge badge-success">正常</span>';
         const action = device.isBanned ?
@@ -171,6 +183,11 @@ function displaySearchResults(licenses) {
                       lic.isExpired ? '<span class="badge badge-warning">已过期</span>' :
                       '<span class="badge badge-success">正常</span>';
         
+        // IP 绑定状态
+        const ipStatus = lic.ipBindingEnabled ? 
+            `<span class="badge badge-info">🔒 ${(lic.allowedIPs || []).length} IP</span>` :
+            '<span class="badge badge-secondary">IP未启用</span>';
+        
         const banBtn = lic.isBanned ? 
             `<button class="btn-small btn-success" onclick="unbanLicenseAction('${lic.license}')">解封</button>` :
             `<button class="btn-small btn-danger" onclick="banLicenseAction('${lic.license}')">封禁</button>`;
@@ -184,8 +201,10 @@ function displaySearchResults(licenses) {
                 <div class="list-item-info">👤 ${lic.customer}</div>
                 <div class="list-item-info">📅 ${lic.expire}</div>
                 <div class="list-item-info">📱 ${lic.devicesUsed} / ${lic.maxDevices} 台设备</div>
+                <div class="list-item-info">${ipStatus}</div>
                 <div class="list-item-actions">
                     <button class="btn-small" onclick="editLicense('${lic.license}')">编辑</button>
+                    <button class="btn-small" onclick="manageIPBindingFromList('${lic.license}')">🔒IP</button>
                     ${banBtn}
                     <button class="btn-small btn-danger" onclick="deleteLicense('${lic.license}')">删除</button>
                 </div>
