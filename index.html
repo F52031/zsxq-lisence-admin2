@@ -26,6 +26,10 @@
             <div class="nav-icon">📱</div>
             <div class="nav-label">设备</div>
         </div>
+        <div class="nav-item" onclick="showTab('review')">
+            <div class="nav-icon">✅</div>
+            <div class="nav-label">审核</div>
+        </div>
         <div class="nav-item" onclick="showTab('settings')">
             <div class="nav-icon">⚙️</div>
             <div class="nav-label">设置</div>
@@ -104,6 +108,26 @@
                 </div>
             </div>
             <div id="devicesResult"></div>
+        </div>
+
+        <!-- 激活审核 -->
+        <div id="review" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>⏳ 待审核激活</h2>
+                    <button class="btn-refresh" onclick="loadPendingIPs()">🔄</button>
+                </div>
+                <p class="hint">💡 客户使用临时密钥激活后会出现在这里，24小时内审核通过即可永久使用</p>
+                <div id="pendingIPsContainer"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h2>✅ 已通过 IP 白名单</h2>
+                    <button class="btn-refresh" onclick="loadApprovedIPs()">🔄</button>
+                </div>
+                <div id="approvedIPsContainer"></div>
+            </div>
         </div>
 
         <!-- 设置 -->
