@@ -553,11 +553,12 @@ function displayLogs(logs) {
         return;
     }
 
-    let html = '<table><thead><tr><th>时间</th><th>操作</th><th>密钥</th><th>设备ID</th><th>IP</th></tr></thead><tbody>';
+    let html = '<table><thead><tr><th>时间</th><th>操作</th><th>用户名</th><th>密钥</th><th>设备ID</th><th>IP</th></tr></thead><tbody>';
     logs.forEach(log => {
         html += `<tr>
             <td>${log.timestamp}</td>
             <td>${log.action}</td>
+            <td>${log.customer || '-'}</td>
             <td><span class="code">${log.license || '-'}</span></td>
             <td>${log.machineId ? '<span class="code">' + log.machineId.substring(0, 8) + '...</span>' : '-'}</td>
             <td><span class="code">${log.ip || '-'}</span></td>
