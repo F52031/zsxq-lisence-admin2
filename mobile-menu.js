@@ -265,14 +265,19 @@ function displayPendingIPs(list) {
 
     let html = '';
     list.forEach(item => {
+        const taskInfo = `${item.taskCount || 0} / 8`;
+        const taskBadgeClass = (item.taskCount || 0) >= 8 ? 'badge-danger' : 'badge-info';
+        const deviceIdShort = item.machineIdFull ? item.machineIdFull.substring(0, 8) + '...' : '-';
         html += `
             <div class="list-item">
                 <div class="list-item-header">
                     <div class="list-item-title">${item.ip}</div>
                     <span class="badge badge-warning">${item.remaining}</span>
                 </div>
-                <div class="list-item-info">🖥️ 设备: ${item.machineId || '-'}</div>
+                <div class="list-item-info">🖥️ 设备: ${deviceIdShort}</div>
                 <div class="list-item-info">🕐 激活时间: ${item.createdAt}</div>
+                <div class="list-item-info">⏰ 最后活跃: ${item.lastSeen || '-'}</div>
+                <div class="list-item-info">📊 任务次数: <span class="badge ${taskBadgeClass}">${taskInfo}</span></div>
                 <div class="list-item-actions">
                     <button class="btn-small btn-success" onclick="approveIPAction('${item.ip}')">✅ 通过</button>
                     <button class="btn-small btn-danger" onclick="rejectIPAction('${item.ip}')">❌ 拒绝</button>
