@@ -148,6 +148,17 @@
                     <button class="btn-refresh" onclick="loadRejectedIPs()">🔄</button>
                 </div>
                 <p class="hint">💡 被拒绝的 IP 无法使用插件，误操作可点击恢复</p>
+
+                <!-- 手动封禁 IP 输入框 -->
+                <div class="form-box"
+                    style="margin-bottom: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="banIPInput" placeholder="输入要封禁的 IP 地址"
+                            style="flex: 1; min-width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <button class="btn-small btn-danger" onclick="manualBanIP()">🚫 封禁 IP</button>
+                    </div>
+                </div>
+
                 <div id="rejectedIPsContainer"></div>
             </div>
         </div>
