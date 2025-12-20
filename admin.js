@@ -28,7 +28,7 @@ function showPage(pageName) {
     document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
     event.target.closest('.nav-item').classList.add('active');
     document.getElementById(`${pageName}-page`).classList.add('active');
-    
+
     const titles = {
         dashboard: '仪表板',
         licenses: '密钥管理',
@@ -36,7 +36,7 @@ function showPage(pageName) {
         settings: '系统设置'
     };
     document.getElementById('pageTitle').textContent = titles[pageName];
-    
+
     if (pageName === 'dashboard') loadDashboard();
     if (pageName === 'licenses') loadAllLicenses();
 }
@@ -80,6 +80,87 @@ function generateLicense() {
 
 function generateNewLicense() {
     document.getElementById('newLicense').value = generateLicense();
+}
+
+// 临时密钥计数器
+function getNextLicenseNumber() {
+    let counter = parseInt(localStorage.getItem('tempLicenseCounter') || '0');
+    counter++;
+    localStorage.setItem('tempLicenseCounter', counter.toString());
+    return counter;
+}
+
+// 生成临时密钥
+async function generateTempLicenses() {
+    const count = parseInt(document.getElementById('tempLicenseCount').value) || 1;
+
+    if (count < 1 || count > 50) {
+        showMessage('生成数量必须在 1-50 之间', 'error');
+        return;
+    }
+
+    const licenses = [];
+
+    // 生成简洁的递增密钥：ZSXQ-8888-0001
+    for (let i = 0; i < count; i++) {
+        const num = getNextLicenseNumber();
+        const paddedNum = num.toString().padStart(4, '0');
+        const uniqueKey = `ZSXQ-8888-${paddedNum}`;
+        licenses.push(uniqueKey);
+    }
+
+    // 先注册到服务端
+    showMessage('正在注册密钥...', 'success');
+    const registerResult = await apiRequest('registerTempLicenses', { licenses });
+
+    if (!registerResult.success) {
+        showMessage('注册失败: ' + (registerResult.error || '未知错误'), 'error');
+        return;
+    }
+
+    // 显示结果
+    let html = `<div class="form-box" style="background: #e8f5e9; border-left: 4px solid #4caf50;">
+        <h3 style="color: #2e7d32;">✅ 已生成并注册 ${count} 个临时密钥</h3>
+        <p style="color: #388e3c;">点击复制按钮复制密钥</p>`;
+
+    licenses.forEach(key => {
+        html += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; margin: 5px 0; border-radius: 4px;">
+            <span style="font-family: monospace; font-size: 14px;">${key}</span>
+            <button class="btn-small" onclick="copyToClipboard('${key}')">📋</button>
+        </div>`;
+    });
+
+    html += `<button class="btn-large btn-success" style="margin-top: 10px;" onclick="copyAllTempLicenses()">📋 复制全部</button>
+    </div>`;
+
+    document.getElementById('tempLicensesResult').innerHTML = html;
+    window.generatedTempLicenses = licenses;
+
+    showMessage(`成功生成 ${count} 个临时密钥`, 'success');
+}
+
+// 复制到剪贴板
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showMessage('已复制', 'success');
+    }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showMessage('已复制', 'success');
+    });
+}
+
+// 复制所有临时密钥
+function copyAllTempLicenses() {
+    if (!window.generatedTempLicenses || window.generatedTempLicenses.length === 0) {
+        showMessage('没有可复制的密钥', 'error');
+        return;
+    }
+    copyToClipboard(window.generatedTempLicenses.join('\n'));
 }
 
 // 格式化时间
@@ -158,9 +239,9 @@ function displayRecentLicenses(data) {
 
     let html = '<table><thead><tr><th>密钥</th><th>客户</th><th>设备</th><th>状态</th></tr></thead><tbody>';
     data.licenses.slice(0, 5).forEach(lic => {
-        const status = lic.isBanned ? '<span class="badge badge-danger">已封禁</span>' : 
-                      new Date(lic.expire) < new Date() ? '<span class="badge badge-warning">已过期</span>' :
-                      '<span class="badge badge-success">正常</span>';
+        const status = lic.isBanned ? '<span class="badge badge-danger">已封禁</span>' :
+            new Date(lic.expire) < new Date() ? '<span class="badge badge-warning">已过期</span>' :
+                '<span class="badge badge-success">正常</span>';
         html += `<tr>
             <td><span class="code">${lic.license}</span></td>
             <td>${lic.customer}</td>
@@ -225,19 +306,19 @@ function displayAllLicenses(data) {
     let html = '<table><thead><tr><th>密钥</th><th>客户</th><th>过期时间</th><th>设备</th><th>状态</th><th>IP绑定</th><th>操作</th></tr></thead><tbody>';
     data.licenses.forEach(lic => {
         const isExpired = new Date(lic.expire) < new Date();
-        const status = lic.isBanned ? '<span class="badge badge-danger">已封禁</span>' : 
-                      isExpired ? '<span class="badge badge-warning">已过期</span>' :
-                      '<span class="badge badge-success">正常</span>';
-        
+        const status = lic.isBanned ? '<span class="badge badge-danger">已封禁</span>' :
+            isExpired ? '<span class="badge badge-warning">已过期</span>' :
+                '<span class="badge badge-success">正常</span>';
+
         // IP 绑定状态
-        const ipStatus = lic.ipBindingEnabled ? 
+        const ipStatus = lic.ipBindingEnabled ?
             `<span class="badge badge-info" title="${(lic.allowedIPs || []).join(', ')}">🔒 ${(lic.allowedIPs || []).length}/2 IP</span>` :
             '<span class="badge badge-secondary">未启用</span>';
-        
-        const banBtn = lic.isBanned ? 
+
+        const banBtn = lic.isBanned ?
             `<button class="btn btn-success btn-sm" onclick="unbanLicenseAction('${lic.license}')">解封</button>` :
             `<button class="btn btn-warning btn-sm" onclick="banLicenseAction('${lic.license}')">封禁</button>`;
-        
+
         html += `<tr>
             <td><span class="code">${lic.license}</span></td>
             <td>${lic.customer}</td>
@@ -306,11 +387,11 @@ function displayDevices(data, license) {
         const action = device.isBanned ?
             `<button class="btn btn-success btn-sm" onclick="unbanDevice('${license}', '${device.machineId}')">解封</button>` :
             `<button class="btn btn-danger btn-sm" onclick="banDevice('${license}', '${device.machineId}')">封禁</button>`;
-        
+
         // IP 历史记录按钮
-        const ipHistoryBtn = device.ipHistory && device.ipHistory.length > 0 ? 
+        const ipHistoryBtn = device.ipHistory && device.ipHistory.length > 0 ?
             `<button class="btn btn-sm" onclick="showIPHistory('${device.machineId}', ${JSON.stringify(device.ipHistory).replace(/"/g, '&quot;')})">历史</button>` : '';
-        
+
         html += `<tr>
             <td><span class="code">${device.machineIdShort}</span></td>
             <td>${device.firstSeen}</td>
@@ -331,13 +412,13 @@ function showIPHistory(machineId, ipHistory) {
         alert('暂无 IP 历史记录');
         return;
     }
-    
+
     let message = `设备 ${machineId.substring(0, 8)}... 的 IP 历史记录：\n\n`;
     ipHistory.forEach((record, index) => {
         const time = formatTime(record.time);
         message += `${index + 1}. ${record.ip} - ${time}\n`;
     });
-    
+
     alert(message);
 }
 
@@ -381,23 +462,23 @@ async function deleteLicense(license) {
 async function editLicense(license) {
     const licenseData = await getLicenseData(license);
     if (!licenseData) return;
-    
+
     const customer = prompt('客户名称:', licenseData.customer);
     if (!customer) return;
-    
+
     const expireDate = prompt('过期时间 (YYYY-MM-DD):', licenseData.expire.split(' ')[0]);
     if (!expireDate) return;
-    
+
     const maxDevices = prompt('最大设备数:', licenseData.maxDevices);
     if (!maxDevices) return;
-    
+
     const result = await apiRequest('updateLicense', {
         license,
         customer,
         expire: new Date(expireDate + ' 23:59:59').getTime(),
         maxDevices: parseInt(maxDevices)
     });
-    
+
     if (result.success) {
         showMessage('密钥已更新', 'success');
         loadAllLicenses();
@@ -443,7 +524,7 @@ async function unbanLicenseAction(license) {
 async function searchLicenses() {
     const keyword = document.getElementById('searchKeyword').value.trim();
     const status = document.getElementById('statusFilter').value;
-    
+
     const result = await apiRequest('searchLicense', { keyword, status });
     if (result.success) {
         displaySearchResults(result.data);
@@ -462,14 +543,14 @@ function displaySearchResults(licenses) {
 
     let html = '<table><thead><tr><th>密钥</th><th>客户</th><th>过期时间</th><th>设备</th><th>状态</th><th>操作</th></tr></thead><tbody>';
     licenses.forEach(lic => {
-        const status = lic.isBanned ? '<span class="badge badge-danger">已封禁</span>' : 
-                      lic.isExpired ? '<span class="badge badge-warning">已过期</span>' :
-                      '<span class="badge badge-success">正常</span>';
-        
-        const banBtn = lic.isBanned ? 
+        const status = lic.isBanned ? '<span class="badge badge-danger">已封禁</span>' :
+            lic.isExpired ? '<span class="badge badge-warning">已过期</span>' :
+                '<span class="badge badge-success">正常</span>';
+
+        const banBtn = lic.isBanned ?
             `<button class="btn btn-success btn-sm" onclick="unbanLicenseAction('${lic.license}')">解封</button>` :
             `<button class="btn btn-warning btn-sm" onclick="banLicenseAction('${lic.license}')">封禁</button>`;
-        
+
         html += `<tr>
             <td><span class="code">${lic.license}</span></td>
             <td>${lic.customer}</td>
@@ -514,13 +595,13 @@ function showImportDialog() {
     input.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
                 const data = JSON.parse(event.target.result);
                 if (!confirm('确定要导入数据吗？这将覆盖现有数据！')) return;
-                
+
                 const result = await apiRequest('importData', { data });
                 if (result.success) {
                     showMessage('数据导入成功', 'success');
@@ -543,9 +624,9 @@ let currentLogsPage = 1;
 const logsPageSize = 50;
 async function loadLogs(page = 1) {
     currentLogsPage = page;
-    const result = await apiRequest('getLogs', { 
+    const result = await apiRequest('getLogs', {
         page: page,
-        pageSize: logsPageSize 
+        pageSize: logsPageSize
     });
     if (result.success) {
         displayLogs(result.data, result.total || 0);
@@ -573,7 +654,7 @@ function displayLogs(logs, total) {
     });
     html += '</tbody></table>';
     document.getElementById('logsContainer').innerHTML = html;
-    
+
     // 显示分页
     displayLogsPagination(total);
 }
@@ -581,27 +662,27 @@ function displayLogs(logs, total) {
 // 显示日志分页
 function displayLogsPagination(total) {
     const totalPages = Math.ceil(total / logsPageSize);
-    
+
     if (totalPages <= 1) {
         document.getElementById('logsPagination').innerHTML = '';
         return;
     }
 
     let html = '<div class="pagination">';
-    
+
     // 上一页按钮
     if (currentLogsPage > 1) {
         html += `<button class="btn btn-sm" onclick="loadLogs(${currentLogsPage - 1})">上一页</button>`;
     }
-    
+
     // 页码信息
     html += `<span>第 ${currentLogsPage} / ${totalPages} 页 (共 ${total} 条记录)</span>`;
-    
+
     // 下一页按钮
     if (currentLogsPage < totalPages) {
         html += `<button class="btn btn-sm" onclick="loadLogs(${currentLogsPage + 1})">下一页</button>`;
     }
-    
+
     html += '</div>';
     document.getElementById('logsPagination').innerHTML = html;
 }
@@ -615,16 +696,16 @@ async function manageIPBinding(license) {
         showMessage(result.error || '查询失败', 'error');
         return;
     }
-    
+
     const data = result.data;
     const enabled = data.enabled || false;
     const allowedIPs = data.allowedIPs || [];
-    
+
     // 构建对话框内容
     let message = `密钥: ${license}\n\n`;
     message += `当前状态: ${enabled ? '✅ 已启用（自动绑定）' : '❌ 未启用（等待首次激活）'}\n`;
     message += `允许的 IP (${allowedIPs.length}/2): ${allowedIPs.length > 0 ? allowedIPs.join(', ') : '无'}\n\n`;
-    
+
     if (data.devices && data.devices.length > 0) {
         message += '设备 IP 历史:\n';
         data.devices.forEach((device, index) => {
@@ -634,15 +715,15 @@ async function manageIPBinding(license) {
         });
         message += '\n';
     }
-    
+
     message += '请选择操作:\n';
     message += '1. 添加 IP 地址\n';
     message += '2. 删除 IP 地址\n';
     message += '3. 禁用 IP 绑定\n';
     message += '4. 取消';
-    
+
     const choice = prompt(message, '4');
-    
+
     if (choice === '1') {
         await addIPToWhitelist(license, allowedIPs);
     } else if (choice === '2') {
@@ -658,32 +739,32 @@ async function removeIPFromWhitelist(license, currentIPs) {
         alert('当前没有绑定的 IP');
         return;
     }
-    
+
     let message = '请选择要删除的 IP:\n\n';
     currentIPs.forEach((ip, index) => {
         message += `${index + 1}. ${ip}\n`;
     });
-    
+
     const choice = prompt(message, '');
     if (!choice) return;
-    
+
     const index = parseInt(choice) - 1;
     if (index < 0 || index >= currentIPs.length) {
         alert('无效的选择');
         return;
     }
-    
+
     const ipToRemove = currentIPs[index];
     if (!confirm(`确定要删除 IP: ${ipToRemove} 吗？`)) return;
-    
+
     const updatedIPs = currentIPs.filter((_, i) => i !== index);
-    
+
     const result = await apiRequest('updateIPBinding', {
         license,
         enabled: updatedIPs.length > 0,
         allowedIPs: updatedIPs
     });
-    
+
     if (result.success) {
         showMessage(`已删除 IP: ${ipToRemove}`, 'success');
         queryDevices();
@@ -699,24 +780,24 @@ async function addIPToWhitelist(license, currentIPs) {
         alert('每个密钥最多只能绑定 2 个 IP 地址\n\n如需添加新 IP，请先删除现有 IP');
         return;
     }
-    
+
     const newIP = prompt('请输入要添加的 IP 地址:', '');
     if (!newIP || !newIP.trim()) return;
-    
+
     const ip = newIP.trim();
     if (currentIPs.includes(ip)) {
         alert('该 IP 已在白名单中');
         return;
     }
-    
+
     const updatedIPs = [...currentIPs, ip];
-    
+
     const result = await apiRequest('updateIPBinding', {
         license,
         enabled: true,
         allowedIPs: updatedIPs
     });
-    
+
     if (result.success) {
         showMessage(`已添加 IP: ${ip}`, 'success');
         queryDevices();
@@ -732,13 +813,13 @@ async function enableIPBinding(license, currentIPs) {
         await setIPWhitelist(license, false);
         return;
     }
-    
+
     const result = await apiRequest('updateIPBinding', {
         license,
         enabled: true,
         allowedIPs: currentIPs
     });
-    
+
     if (result.success) {
         showMessage('IP 绑定已启用', 'success');
         queryDevices();
@@ -750,12 +831,12 @@ async function enableIPBinding(license, currentIPs) {
 // 禁用 IP 绑定
 async function disableIPBinding(license) {
     if (!confirm('确定要禁用 IP 绑定吗？')) return;
-    
+
     const result = await apiRequest('updateIPBinding', {
         license,
         enabled: false
     });
-    
+
     if (result.success) {
         showMessage('IP 绑定已禁用', 'success');
         queryDevices();
@@ -768,22 +849,22 @@ async function disableIPBinding(license) {
 async function setIPWhitelist(license, currentEnabled) {
     const ipsText = prompt('请输入允许的 IP 地址（每行一个）:\n\n例如:\n192.168.1.100\n10.0.0.50', '');
     if (ipsText === null) return;
-    
+
     const allowedIPs = ipsText.split('\n')
         .map(ip => ip.trim())
         .filter(ip => ip.length > 0);
-    
+
     if (allowedIPs.length === 0) {
         alert('请至少输入一个 IP 地址');
         return;
     }
-    
+
     const result = await apiRequest('updateIPBinding', {
         license,
         enabled: currentEnabled,
         allowedIPs
     });
-    
+
     if (result.success) {
         showMessage('IP 白名单已更新', 'success');
         queryDevices();
@@ -799,16 +880,16 @@ async function manageIPBindingFromList(license) {
         showMessage(result.error || '查询失败', 'error');
         return;
     }
-    
+
     const data = result.data;
     const enabled = data.enabled || false;
     const allowedIPs = data.allowedIPs || [];
-    
+
     // 构建对话框内容
     let message = `密钥: ${license}\n\n`;
     message += `当前状态: ${enabled ? '✅ 已启用（自动绑定）' : '❌ 未启用（等待首次激活）'}\n`;
     message += `允许的 IP (${allowedIPs.length}/2): ${allowedIPs.length > 0 ? allowedIPs.join(', ') : '无'}\n\n`;
-    
+
     if (data.devices && data.devices.length > 0) {
         message += '设备 IP 历史:\n';
         data.devices.forEach((device, index) => {
@@ -818,15 +899,15 @@ async function manageIPBindingFromList(license) {
         });
         message += '\n';
     }
-    
+
     message += '请选择操作:\n';
     message += '1. 添加 IP 地址\n';
     message += '2. 删除 IP 地址\n';
     message += '3. 禁用 IP 绑定\n';
     message += '4. 取消';
-    
+
     const choice = prompt(message, '4');
-    
+
     if (choice === '1') {
         await addIPToWhitelistFromList(license, allowedIPs);
     } else if (choice === '2') {
@@ -842,32 +923,32 @@ async function removeIPFromWhitelistFromList(license, currentIPs) {
         alert('当前没有绑定的 IP');
         return;
     }
-    
+
     let message = '请选择要删除的 IP:\n\n';
     currentIPs.forEach((ip, index) => {
         message += `${index + 1}. ${ip}\n`;
     });
-    
+
     const choice = prompt(message, '');
     if (!choice) return;
-    
+
     const index = parseInt(choice) - 1;
     if (index < 0 || index >= currentIPs.length) {
         alert('无效的选择');
         return;
     }
-    
+
     const ipToRemove = currentIPs[index];
     if (!confirm(`确定要删除 IP: ${ipToRemove} 吗？`)) return;
-    
+
     const updatedIPs = currentIPs.filter((_, i) => i !== index);
-    
+
     const result = await apiRequest('updateIPBinding', {
         license,
         enabled: updatedIPs.length > 0,
         allowedIPs: updatedIPs
     });
-    
+
     if (result.success) {
         showMessage(`已删除 IP: ${ipToRemove}`, 'success');
         loadAllLicenses();
@@ -883,24 +964,24 @@ async function addIPToWhitelistFromList(license, currentIPs) {
         alert('每个密钥最多只能绑定 2 个 IP 地址\n\n如需添加新 IP，请先删除现有 IP');
         return;
     }
-    
+
     const newIP = prompt('请输入要添加的 IP 地址:', '');
     if (!newIP || !newIP.trim()) return;
-    
+
     const ip = newIP.trim();
     if (currentIPs.includes(ip)) {
         alert('该 IP 已在白名单中');
         return;
     }
-    
+
     const updatedIPs = [...currentIPs, ip];
-    
+
     const result = await apiRequest('updateIPBinding', {
         license,
         enabled: true,
         allowedIPs: updatedIPs
     });
-    
+
     if (result.success) {
         showMessage(`已添加 IP: ${ip}`, 'success');
         loadAllLicenses();
@@ -916,13 +997,13 @@ async function enableIPBindingFromList(license, currentIPs) {
         await setIPWhitelistFromList(license, false);
         return;
     }
-    
+
     const result = await apiRequest('updateIPBinding', {
         license,
         enabled: true,
         allowedIPs: currentIPs
     });
-    
+
     if (result.success) {
         showMessage('IP 绑定已启用', 'success');
         loadAllLicenses();
@@ -934,12 +1015,12 @@ async function enableIPBindingFromList(license, currentIPs) {
 // 从列表禁用 IP 绑定
 async function disableIPBindingFromList(license) {
     if (!confirm('确定要禁用 IP 绑定吗？')) return;
-    
+
     const result = await apiRequest('updateIPBinding', {
         license,
         enabled: false
     });
-    
+
     if (result.success) {
         showMessage('IP 绑定已禁用', 'success');
         loadAllLicenses();
@@ -952,22 +1033,22 @@ async function disableIPBindingFromList(license) {
 async function setIPWhitelistFromList(license, currentEnabled) {
     const ipsText = prompt('请输入允许的 IP 地址（每行一个）:\n\n例如:\n192.168.1.100\n10.0.0.50', '');
     if (ipsText === null) return;
-    
+
     const allowedIPs = ipsText.split('\n')
         .map(ip => ip.trim())
         .filter(ip => ip.length > 0);
-    
+
     if (allowedIPs.length === 0) {
         alert('请至少输入一个 IP 地址');
         return;
     }
-    
+
     const result = await apiRequest('updateIPBinding', {
         license,
         enabled: currentEnabled,
         allowedIPs
     });
-    
+
     if (result.success) {
         showMessage('IP 白名单已更新', 'success');
         loadAllLicenses();
