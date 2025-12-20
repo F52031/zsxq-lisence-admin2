@@ -82,15 +82,7 @@ function generateNewLicense() {
     document.getElementById('newLicense').value = generateLicense();
 }
 
-// 临时密钥计数器
-function getNextLicenseNumber() {
-    let counter = parseInt(localStorage.getItem('tempLicenseCounter') || '0');
-    counter++;
-    localStorage.setItem('tempLicenseCounter', counter.toString());
-    return counter;
-}
-
-// 生成临时密钥
+// 生成临时密钥（使用服务端全局计数器）
 async function generateTempLicenses() {
     const count = parseInt(document.getElementById('tempLicenseCount').value) || 1;
 
@@ -99,17 +91,26 @@ async function generateTempLicenses() {
         return;
     }
 
+    // 从服务端获取全局计数器编号
+    showMessage('正在获取密钥编号...', 'success');
+    const numberResult = await apiRequest('getNextTempLicenseNumber', { count });
+
+    if (!numberResult.success) {
+        showMessage('获取编号失败: ' + (numberResult.error || '未知错误'), 'error');
+        return;
+    }
+
+    const numbers = numberResult.data.numbers;
     const licenses = [];
 
     // 生成简洁的递增密钥：ZSXQ-8888-0001
     for (let i = 0; i < count; i++) {
-        const num = getNextLicenseNumber();
-        const paddedNum = num.toString().padStart(4, '0');
+        const paddedNum = numbers[i].toString().padStart(4, '0');
         const uniqueKey = `ZSXQ-8888-${paddedNum}`;
         licenses.push(uniqueKey);
     }
 
-    // 先注册到服务端
+    // 注册到服务端
     showMessage('正在注册密钥...', 'success');
     const registerResult = await apiRequest('registerTempLicenses', { licenses });
 
