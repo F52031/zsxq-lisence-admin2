@@ -1,10 +1,48 @@
-// 页面初始化
-window.onload = () => {
+// 管理密码（可以修改为你想要的密码）
+const ADMIN_PASSWORD = 'zsxq2025';
+
+// 检查登录状态
+function checkLogin() {
+    return sessionStorage.getItem('adminLoggedIn') === 'true';
+}
+
+// 登录
+function doLogin() {
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    
+    if (password === ADMIN_PASSWORD) {
+        sessionStorage.setItem('adminLoggedIn', 'true');
+        document.getElementById('loginOverlay').classList.add('hidden');
+        errorEl.textContent = '';
+        initMobileApp();
+    } else {
+        errorEl.textContent = '密码错误，请重试';
+        document.getElementById('loginPassword').value = '';
+    }
+}
+
+// 退出登录
+function logout() {
+    sessionStorage.removeItem('adminLoggedIn');
+    location.reload();
+}
+
+// 初始化移动端应用
+function initMobileApp() {
     // 根据 URL hash 恢复页面状态
     const hash = window.location.hash.replace('#', '') || 'dashboard';
     const validTabs = ['dashboard', 'licenses', 'review'];
     const tabName = validTabs.includes(hash) ? hash : 'dashboard';
     showTabByName(tabName);
+}
+
+// 页面初始化
+window.onload = () => {
+    if (checkLogin()) {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        initMobileApp();
+    }
 };
 
 // 监听浏览器前进后退
@@ -263,11 +301,6 @@ function displayLicensesPagination(data) {
     html += '</div>';
     document.getElementById('licensesPagination').innerHTML = html;
 }
-
-// 页面加载完成后初始化
-window.addEventListener('load', function () {
-    loadDashboard();
-});
 
 
 // ==================== 激活审核功能（移动端优化） ====================
