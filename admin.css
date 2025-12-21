@@ -398,3 +398,54 @@ label {
 .empty-state-text {
     font-size: 16px;
 }
+
+/* 登录遮罩层 */
+.login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.login-overlay.hidden {
+    display: none;
+}
+
+.login-box {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    text-align: center;
+    width: 90%;
+    max-width: 350px;
+}
+
+.login-box h2 {
+    margin-bottom: 25px;
+    color: #2c3e50;
+    font-size: 22px;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.login-form .input-large {
+    text-align: center;
+}
+
+.login-error {
+    color: #f56565;
+    font-size: 14px;
+    margin-top: 15px;
+    min-height: 20px;
+}
