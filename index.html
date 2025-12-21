@@ -9,6 +9,18 @@
 </head>
 
 <body>
+    <!-- 登录遮罩层 -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-box">
+            <h2>🔐 管理后台登录</h2>
+            <div class="login-form">
+                <input type="password" id="loginPassword" class="input-large" placeholder="请输入管理密码" onkeypress="if(event.key==='Enter')doLogin()">
+                <button class="btn-large btn-primary" onclick="doLogin()">登录</button>
+            </div>
+            <p id="loginError" class="login-error"></p>
+        </div>
+    </div>
+
     <!-- 顶部导航 -->
     <div class="top-nav">
         <h1>🎛️ 管理后台</h1>
